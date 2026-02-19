@@ -28,6 +28,8 @@ import com.mbrlabs.mundus.commons.assets.AssetManager;
 import com.mbrlabs.mundus.commons.assets.AssetNotFoundException;
 import com.mbrlabs.mundus.commons.assets.meta.MetaFileParseException;
 import com.mbrlabs.mundus.commons.mapper.CustomComponentConverter;
+import com.mbrlabs.mundus.commons.physics.NoopPhysicsSystem;
+import com.mbrlabs.mundus.commons.physics.PhysicsSystem;
 import com.mbrlabs.mundus.commons.shaders.MundusPBRShaderProvider;
 import com.mbrlabs.mundus.commons.utils.ShaderUtils;
 import net.mgsx.gltf.scene3d.scene.SceneRenderableSorter;
@@ -55,11 +57,11 @@ public class Mundus implements Disposable {
      * @param mundusRoot FileHandle to the root directory of the Mundus project to load
      */
     public Mundus(final FileHandle mundusRoot) {
-        this(mundusRoot, new Config());
+        this(mundusRoot, new Config(), NoopPhysicsSystem.INSTANCE);
     }
 
-    public Mundus(final FileHandle mundusRoot, CustomComponentConverter... customComponentConverters) {
-        this(mundusRoot, new Config(), customComponentConverters);
+    public Mundus(final FileHandle mundusRoot, PhysicsSystem physicsSystem, CustomComponentConverter... customComponentConverters) {
+        this(mundusRoot, new Config(), physicsSystem, customComponentConverters);
     }
 
     /**
@@ -94,10 +96,10 @@ public class Mundus implements Disposable {
      * @param config the configuration to use
      * @param customComponentConverters the converters for custom components. these fields are optional / nullable
      */
-    public Mundus(final FileHandle mundusRoot, Config config, CustomComponentConverter... customComponentConverters) {
+    public Mundus(final FileHandle mundusRoot, Config config, PhysicsSystem physicsSystem, CustomComponentConverter... customComponentConverters) {
         this.root = mundusRoot;
         this.assetManager = new AssetManager(root.child(PROJECT_ASSETS_DIR));
-        this.sceneLoader = new SceneLoader(this, root.child(PROJECT_SCENES_DIR), customComponentConverters);
+        this.sceneLoader = new SceneLoader(this, root.child(PROJECT_SCENES_DIR), physicsSystem, customComponentConverters);
 
         if (config.autoLoad) {
             init(config.asyncLoad);

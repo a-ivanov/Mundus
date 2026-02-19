@@ -27,8 +27,10 @@ import com.mbrlabs.mundus.commons.dto.GameObjectDTO;
 import com.mbrlabs.mundus.commons.dto.TerrainComponentDTO;
 import com.mbrlabs.mundus.commons.mapper.CustomComponentConverter;
 import com.mbrlabs.mundus.commons.mapper.CustomPropertiesComponentConverter;
+import com.mbrlabs.mundus.commons.mapper.PhysicsComponentConverter;
 import com.mbrlabs.mundus.commons.scene3d.GameObject;
 import com.mbrlabs.mundus.commons.scene3d.SceneGraph;
+import com.mbrlabs.mundus.commons.scene3d.components.AbstractPhysicsComponent;
 import com.mbrlabs.mundus.commons.scene3d.components.Component;
 import com.mbrlabs.mundus.commons.scene3d.components.CustomPropertiesComponent;
 import com.mbrlabs.mundus.commons.scene3d.components.LightComponent;
@@ -54,6 +56,7 @@ public class GameObjectConverter {
      */
     public static GameObject convert(GameObjectDTO dto, SceneGraph sceneGraph,
                                      Map<String, Asset> assets,
+                                     PhysicsComponentConverter physicsComponentConverter,
                                      Array<CustomComponentConverter> customComponentConverters) {
         final GameObject go = new GameObject(sceneGraph, dto.getName(), dto.getId());
         go.active = dto.isActive();
@@ -80,6 +83,11 @@ public class GameObjectConverter {
             go.getComponents().add(TerrainManagerComponentConverter.convert(dto.getTerrainManagerComponent(), go));
         } else if (dto.getWaterComponent() != null) {
             go.getComponents().add(WaterComponentConverter.convert(dto.getWaterComponent(), go, assets));
+        }
+
+        // Convert physics component
+        if (dto.getPhysicsComponent() != null) {
+            go.getComponents().add(physicsComponentConverter.convert(dto.getPhysicsComponent(), go));
         }
 
         // Convert custom properties component
@@ -119,7 +127,7 @@ public class GameObjectConverter {
         // recursively convert children
         if (dto.getChilds() != null) {
             for (GameObjectDTO c : dto.getChilds()) {
-                go.addChild(convert(c, sceneGraph, assets, customComponentConverters));
+                go.addChild(convert(c, sceneGraph, assets, physicsComponentConverter, customComponentConverters));
             }
 
             setupNeighborTerrains(dto, go);
@@ -183,6 +191,7 @@ public class GameObjectConverter {
      */
     public static GameObjectDTO convert(
             GameObject go,
+            PhysicsComponentConverter physicsComponentConverter,
             Array<CustomComponentConverter> customComponentConverters
     ) {
         GameObjectDTO descriptor = new GameObjectDTO();
@@ -220,6 +229,8 @@ public class GameObjectConverter {
                 descriptor.setWaterComponent(WaterComponentConverter.convert((PickableWaterComponent) c));
             } else if (c.getType() == Component.Type.LIGHT) {
                 descriptor.setLightComponent(PickableLightComponentConverter.convert((LightComponent) c));
+            } else if (c.getType() == Component.Type.PHYSICS) {
+                descriptor.setPhysicsComponent(physicsComponentConverter.convert((AbstractPhysicsComponent) c));
             } else if (c.getType() == Component.Type.CUSTOM_PROPERTIES) {
                 descriptor.setCustomPropertiesComponent(CustomPropertiesComponentConverter.convert((CustomPropertiesComponent) c));
             } else if (c.getType() == Component.Type.TERRAIN_MANAGER) {
@@ -258,7 +269,7 @@ public class GameObjectConverter {
         // recursively convert children
         if (go.getChildren() != null) {
             for (GameObject c : go.getChildren()) {
-                descriptor.getChilds().add(convert(c, customComponentConverters));
+                descriptor.getChilds().add(convert(c, physicsComponentConverter, customComponentConverters));
             }
         }
 

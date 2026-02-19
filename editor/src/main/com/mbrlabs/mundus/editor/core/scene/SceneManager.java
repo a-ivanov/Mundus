@@ -23,6 +23,7 @@ import com.badlogic.gdx.utils.Json;
 import com.mbrlabs.mundus.commons.Scene;
 import com.mbrlabs.mundus.commons.dto.SceneDTO;
 import com.mbrlabs.mundus.commons.mapper.CustomComponentConverter;
+import com.mbrlabs.mundus.commons.physics.PhysicsSystem;
 import com.mbrlabs.mundus.editor.core.converter.SceneConverter;
 import com.mbrlabs.mundus.editor.core.project.ProjectContext;
 import com.mbrlabs.mundus.editor.core.project.ProjectManager;
@@ -47,9 +48,10 @@ public class SceneManager {
     public static void saveScene(ProjectContext context, Scene scene, PluginManager pluginManager) {
         String sceneDir = getScenePath(context, scene.getName());
 
+        PhysicsSystem physicsSystem = PluginUtils.INSTANCE.getPhysicsSystem(pluginManager);
         final Array<CustomComponentConverter> customComponentConverters = PluginUtils.INSTANCE.getCustomComponentConverters(pluginManager);
 
-        SceneDTO sceneDTO = SceneConverter.convert(scene, customComponentConverters);
+        SceneDTO sceneDTO = SceneConverter.convert(scene, physicsSystem.getPhysicsComponentConverter(), customComponentConverters);
         FileHandle saveFile = Gdx.files.absolute(sceneDir);
         saveFile.writeString(JSON.toJson(sceneDTO), false);
     }

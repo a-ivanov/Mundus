@@ -25,6 +25,7 @@ import com.mbrlabs.mundus.commons.dto.GameObjectDTO;
 import com.mbrlabs.mundus.commons.dto.TerrainComponentDTO;
 import com.mbrlabs.mundus.commons.mapper.CustomComponentConverter;
 import com.mbrlabs.mundus.commons.mapper.CustomPropertiesComponentConverter;
+import com.mbrlabs.mundus.commons.mapper.PhysicsComponentConverter;
 import com.mbrlabs.mundus.commons.scene3d.GameObject;
 import com.mbrlabs.mundus.commons.scene3d.SceneGraph;
 import com.mbrlabs.mundus.commons.scene3d.components.Component;
@@ -45,6 +46,7 @@ public class GameObjectConverter {
             SceneGraph sceneGraph,
             Shaders shaders,
             AssetManager assetManager,
+            PhysicsComponentConverter physicsComponentConverter,
             CustomComponentConverter[] customComponentConverters
     ) {
         final GameObject go = new GameObject(sceneGraph, dto.getName(), dto.getId());
@@ -70,6 +72,10 @@ public class GameObjectConverter {
             go.getComponents().add(TerrainComponentConverter.convert(dto.getTerrainComponent(), go, assetManager));
         } else if (dto.getWaterComponent() != null) {
             go.getComponents().add(WaterComponentConverter.convert(dto.getWaterComponent(), go, shaders, assetManager));
+        }
+
+        if (dto.getPhysicsComponent() != null) {
+            go.getComponents().add(physicsComponentConverter.convert(dto.getPhysicsComponent(), go));
         }
 
         if (dto.getLightComponent() != null) {
@@ -103,7 +109,7 @@ public class GameObjectConverter {
         // recursively convert children
         if (dto.getChilds() != null) {
             for (GameObjectDTO c : dto.getChilds()) {
-                go.addChild(convert(c, sceneGraph, shaders, assetManager, customComponentConverters));
+                go.addChild(convert(c, sceneGraph, shaders, assetManager, physicsComponentConverter, customComponentConverters));
             }
 
             setupNeighborTerrains(dto, go);
