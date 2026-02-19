@@ -1,0 +1,42 @@
+apply plugin: "java"
+apply plugin: "maven-publish"
+
+group = 'com.github.jamestkhan.mundus'
+version = '0.5.1'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+sourceSets.main.java.srcDirs = ["src/"]
+sourceSets.main.resources.srcDirs = ["src/"]
+
+ext.pluginsDir = layout.buildDirectory.dir("plugins").get().asFile
+
+jar {
+    manifest {
+        attributes 'Plugin-Class': "${pluginClass}",
+                'Plugin-Id': "${pluginId}",
+                'Plugin-Version': "${archiveVersion}",
+                'Plugin-Provider': "${pluginProvider}",
+                'Plugin-Dependencies': "${pluginDependencies}"
+    }
+}
+
+tasks.register('plugin', Jar) {
+    archiveBaseName = "plugin-${pluginId}"
+    into('classes') {
+        with jar
+    }
+    into('lib') {
+        from configurations.runtimeClasspath
+    }
+    archiveExtension = 'zip'
+}
+
+tasks.register('assemblePlugin', Copy) {
+    from plugin
+    into pluginsDir
+}
+
+build.dependsOn assemblePlugin

@@ -144,6 +144,31 @@ project(":plugin-api") {
     }
 }
 
+project(":physics-bullet") {
+    apply plugin: "java"
+    apply plugin: "java-library"
+
+    dependencies {
+        api project(":commons")
+
+        implementation "com.badlogicgames.gdx:gdx-bullet:$gdxVersion"
+        implementation "com.badlogicgames.gdx:gdx-bullet-platform:$gdxVersion:natives-desktop"
+    }
+}
+
+project(":plugin-physics-bullet") {
+    apply plugin: "java"
+    apply plugin: "java-library"
+
+    dependencies {
+        compileOnly project(":plugin-api")
+
+        api project(":physics-bullet")
+
+        annotationProcessor "org.pf4j:pf4j:$pf4jVersion"
+    }
+}
+
 tasks.eclipse.doLast {
     delete ".project"
 }
