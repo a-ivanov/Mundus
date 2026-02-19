@@ -17,7 +17,6 @@
 package com.mbrlabs.mundus.editor.exporter
 
 import com.badlogic.gdx.files.FileHandle
-import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Json
 import com.badlogic.gdx.utils.JsonWriter
 import com.kotcrab.vis.ui.util.async.AsyncTask
@@ -28,7 +27,6 @@ import com.mbrlabs.mundus.commons.dto.ModelComponentDTO
 import com.mbrlabs.mundus.commons.dto.SceneDTO
 import com.mbrlabs.mundus.commons.dto.TerrainComponentDTO
 import com.mbrlabs.mundus.commons.importer.JsonScene
-import com.mbrlabs.mundus.commons.mapper.CustomComponentConverter
 import com.mbrlabs.mundus.editor.core.converter.SceneConverter
 import com.mbrlabs.mundus.editor.core.io.IOManager
 import com.mbrlabs.mundus.editor.core.project.ProjectContext
@@ -50,12 +48,13 @@ class Exporter(val ioManager: IOManager, val project: ProjectContext, val plugin
      *
      */
     fun exportAsync(outputFolder: FileHandle, listener: AsyncTaskListener) {
+        val physicsSystem = PluginUtils.getPhysicsSystem(pluginManager)
         val customComponentConverters = PluginUtils.getCustomComponentConverters(pluginManager)
 
         // convert current project on the main thread to avoid nested array iterators
         // because it would iterate over the scene graph arrays while rendering (on the main thread)
         // and while converting (on the other thread)
-        val currentSceneDTO = SceneConverter.convert(project.currScene, customComponentConverters)
+        val currentSceneDTO = SceneConverter.convert(project.currScene, physicsSystem.physicsComponentConverter, customComponentConverters)
         val jsonType = project.settings.export.jsonType
 
         val task = object: AsyncTask("export_${project.name}") {

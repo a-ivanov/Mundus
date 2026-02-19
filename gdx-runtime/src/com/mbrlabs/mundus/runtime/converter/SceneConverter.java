@@ -28,6 +28,7 @@ import com.mbrlabs.mundus.commons.mapper.BaseLightConverter;
 import com.mbrlabs.mundus.commons.mapper.CustomComponentConverter;
 import com.mbrlabs.mundus.commons.mapper.DirectionalLightConverter;
 import com.mbrlabs.mundus.commons.mapper.FogConverter;
+import com.mbrlabs.mundus.commons.physics.PhysicsSystem;
 import com.mbrlabs.mundus.commons.scene3d.GameObject;
 import com.mbrlabs.mundus.commons.scene3d.SceneGraph;
 import com.mbrlabs.mundus.commons.scene3d.components.Component;
@@ -43,7 +44,7 @@ public class SceneConverter {
     /**
      * Converts {@link SceneDTO} to {@link Scene}.
      */
-    public static Scene convert(SceneDTO dto, Shaders shaders, AssetManager assetManager, CustomComponentConverter[] customComponentConverters) {
+    public static Scene convert(SceneDTO dto, Shaders shaders, AssetManager assetManager, PhysicsSystem physicsSystem, CustomComponentConverter[] customComponentConverters) {
         Scene scene = new Scene();
 
         // meta
@@ -76,7 +77,7 @@ public class SceneConverter {
         // scene graph
         scene.sceneGraph = new SceneGraph(scene);
         for (GameObjectDTO descriptor : dto.getGameObjects()) {
-            scene.sceneGraph.addGameObject(GameObjectConverter.convert(descriptor, scene.sceneGraph, shaders, assetManager, customComponentConverters));
+            scene.sceneGraph.addGameObject(GameObjectConverter.convert(descriptor, scene.sceneGraph, shaders, assetManager, physicsSystem.getPhysicsComponentConverter(), customComponentConverters));
             scene.sceneGraph.setContainsWater(containsWaterComponent(scene.sceneGraph.getRoot()));
         }
 
@@ -87,6 +88,8 @@ public class SceneConverter {
             ((PerspectiveCamera) scene.cam).fieldOfView = dto.getCamFieldOfView() > 0 ? dto.getCamFieldOfView() : CameraSettings.DEFAULT_FOV;
         }
         scene.cam.update();
+
+        scene.physicsSystem = physicsSystem;
 
         return scene;
     }

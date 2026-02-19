@@ -28,6 +28,8 @@ import com.mbrlabs.mundus.commons.mapper.BaseLightConverter;
 import com.mbrlabs.mundus.commons.mapper.CustomComponentConverter;
 import com.mbrlabs.mundus.commons.mapper.DirectionalLightConverter;
 import com.mbrlabs.mundus.commons.mapper.FogConverter;
+import com.mbrlabs.mundus.commons.mapper.PhysicsComponentConverter;
+import com.mbrlabs.mundus.commons.physics.PhysicsSystem;
 import com.mbrlabs.mundus.commons.scene3d.GameObject;
 import com.mbrlabs.mundus.commons.scene3d.SceneGraph;
 import com.mbrlabs.mundus.commons.shadows.MundusDirectionalShadowLight;
@@ -47,6 +49,7 @@ public class SceneConverter {
      */
     public static SceneDTO convert(
             Scene scene,
+            PhysicsComponentConverter physicsComponentConverter,
             Array<CustomComponentConverter> customComponentConverters
     ) {
         SceneDTO dto = new SceneDTO();
@@ -58,7 +61,7 @@ public class SceneConverter {
 
         // scene graph
         for (GameObject go : scene.sceneGraph.getGameObjects()) {
-            dto.getGameObjects().add(GameObjectConverter.convert(go, customComponentConverters));
+            dto.getGameObjects().add(GameObjectConverter.convert(go, physicsComponentConverter, customComponentConverters));
         }
 
         // environment stuff
@@ -97,6 +100,7 @@ public class SceneConverter {
     public static EditorScene convert(
             SceneDTO dto,
             Map<String, Asset> assets,
+            PhysicsSystem physicsSystem,
             Array<CustomComponentConverter> customComponentConverters
     ) {
         EditorScene scene = new EditorScene();
@@ -131,7 +135,7 @@ public class SceneConverter {
         // scene graph
         scene.sceneGraph = new SceneGraph(scene);
         for (GameObjectDTO descriptor : dto.getGameObjects()) {
-            scene.sceneGraph.addGameObject(GameObjectConverter.convert(descriptor, scene.sceneGraph, assets, customComponentConverters));
+            scene.sceneGraph.addGameObject(GameObjectConverter.convert(descriptor, scene.sceneGraph, assets, physicsSystem.getPhysicsComponentConverter(), customComponentConverters));
         }
 
         // camera
@@ -145,6 +149,8 @@ public class SceneConverter {
             ((PerspectiveCamera) scene.cam).fieldOfView = dto.getCamFieldOfView() > 0 ? dto.getCamFieldOfView() : CameraSettings.DEFAULT_FOV;
         }
         scene.cam.update();
+
+        scene.physicsSystem = physicsSystem;
 
         return scene;
     }

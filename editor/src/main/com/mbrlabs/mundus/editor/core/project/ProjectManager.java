@@ -31,6 +31,7 @@ import com.mbrlabs.mundus.commons.assets.TextureAsset;
 import com.mbrlabs.mundus.commons.assets.meta.MetaFileParseException;
 import com.mbrlabs.mundus.commons.dto.SceneDTO;
 import com.mbrlabs.mundus.commons.mapper.CustomComponentConverter;
+import com.mbrlabs.mundus.commons.physics.PhysicsSystem;
 import com.mbrlabs.mundus.commons.scene3d.GameObject;
 import com.mbrlabs.mundus.commons.scene3d.SceneGraph;
 import com.mbrlabs.mundus.commons.scene3d.components.Component;
@@ -474,9 +475,10 @@ public class ProjectManager implements Disposable {
     public EditorScene loadScene(ProjectContext context, String sceneName) throws FileNotFoundException {
         SceneDTO sceneDTO = SceneManager.loadScene(context, sceneName);
 
+        PhysicsSystem physicsSystem = PluginUtils.INSTANCE.getPhysicsSystem(pluginManager);
         final Array<CustomComponentConverter> customComponentConverters = PluginUtils.INSTANCE.getCustomComponentConverters(pluginManager);
 
-        EditorScene scene = SceneConverter.convert(sceneDTO, context.assetManager.getAssetMap(), customComponentConverters);
+        EditorScene scene = SceneConverter.convert(sceneDTO, context.assetManager.getAssetMap(), physicsSystem, customComponentConverters);
 
         // load skybox
         if (scene.skyboxAssetId != null && context.assetManager.getAssetMap().containsKey(scene.skyboxAssetId)) {
