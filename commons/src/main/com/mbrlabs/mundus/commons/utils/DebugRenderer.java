@@ -13,6 +13,9 @@ import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.ArrowShapeBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.BoxShapeBuilder;
+import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.CapsuleShapeBuilder;
+import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.SphereShapeBuilder;
+import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.CylinderShapeBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
@@ -20,7 +23,14 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.OrientedBoundingBox;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
+import com.mbrlabs.mundus.commons.physics.Axis;
+import com.mbrlabs.mundus.commons.physics.BoxCollisionShape;
+import com.mbrlabs.mundus.commons.physics.CapsuleCollisionShape;
+import com.mbrlabs.mundus.commons.physics.CollisionShape;
+import com.mbrlabs.mundus.commons.physics.CylinderCollisionShape;
+import com.mbrlabs.mundus.commons.physics.SphereCollisionShape;
 import com.mbrlabs.mundus.commons.scene3d.GameObject;
+import com.mbrlabs.mundus.commons.scene3d.components.AbstractPhysicsBodyComponent;
 import com.mbrlabs.mundus.commons.scene3d.components.Component;
 import com.mbrlabs.mundus.commons.scene3d.components.CullableComponent;
 import com.mbrlabs.mundus.commons.scene3d.components.ModelComponent;
@@ -53,6 +63,7 @@ public class DebugRenderer implements Renderer, Disposable {
     private ModelBatch modelBatch;
     private final ModelBuilder modelBuilder = new ModelBuilder();
     private final Map<Component, ModelInstance> modelInstancesCache = new HashMap<>();
+    private final Map<AbstractPhysicsBodyComponent, CollisionShape> currentCollisionShapes = new HashMap<>();
     private ModelInstance arrowInstance;
     private final Array<ModelInstance> instances = new Array<>();
 
@@ -122,50 +133,13 @@ public class DebugRenderer implements Renderer, Disposable {
         for (Component component : go.getComponents()) {
 
             // Only CullableComponents have bounds info available right now.
-            if (!(component instanceof CullableComponent)) {
-                continue;
+            if (component instanceof CullableComponent) {
+                renderBounds((CullableComponent) component);
+            }
+            if (component instanceof AbstractPhysicsBodyComponent) {
+                renderCollisionShape((AbstractPhysicsBodyComponent) component);
             }
 
-            cullableComponent = (CullableComponent) component;
-
-            if (!modelInstancesCache.containsKey(component)) {
-                OrientedBoundingBox orientedBoundingBox = cullableComponent.getOrientedBoundingBox();
-                if (orientedBoundingBox == null) continue;
-                tmpObb.set(orientedBoundingBox.getBounds(), new Matrix4());
-                Model model = buildModel(tmpObb, getColor(component));
-                modelInstancesCache.put(component, new ModelInstance(model));
-            }
-
-            ModelInstance modelInstance = modelInstancesCache.get(component);
-            modelInstance.transform.set(cullableComponent.getOrientedBoundingBox().getTransform());
-            instances.add(modelInstance);
-
-            if (drawFacingArrow && go == selectedGameObject) {
-
-                Vector3 worldPos = Pools.vector3Pool.obtain();
-                Vector3 arrowScale = Pools.vector3Pool.obtain();
-                Vector3 localPos = Pools.vector3Pool.obtain();
-                Quaternion localRot = Pools.quaternionPool.obtain();
-
-                selectedGameObject.getPosition(worldPos);
-                selectedGameObject.getLocalPosition(localPos);
-                selectedGameObject.getLocalRotation(localRot);
-
-                // Scale the arrow based on distance from camera and size of bounding box
-                float scaleFactor = Math.max(camera.position.dst(worldPos) * 0.1f, cullableComponent.getRadius());
-                arrowScale.set(scaleFactor, scaleFactor, scaleFactor);
-
-                // Set the transform of the arrow in local space first, with a calculated scale
-                arrowInstance.transform.set(localPos, localRot, arrowScale);
-                // apply world transform
-                arrowInstance.transform.mulLeft(go.getParent().getTransform());
-
-                Pools.vector3Pool.free(worldPos);
-                Pools.vector3Pool.free(arrowScale);
-                Pools.vector3Pool.free(localPos);
-                Pools.quaternionPool.free(localRot);
-                instances.add(arrowInstance);
-            }
         }
 
         if (go.getChildren() == null) return;
@@ -189,6 +163,8 @@ public class DebugRenderer implements Renderer, Disposable {
             return Color.GREEN;
         } else if (component instanceof WaterComponent) {
             return Color.NAVY;
+        } else if (component instanceof AbstractPhysicsBodyComponent) {
+            return Color.ROYAL;
         }
         return Color.WHITE;
     }
@@ -213,6 +189,66 @@ public class DebugRenderer implements Renderer, Disposable {
         }
     }
 
+    private void renderBounds(CullableComponent component) {
+        GameObject go = component.getGameObject();
+        cullableComponent = component;
+
+        if (!modelInstancesCache.containsKey(component)) {
+            OrientedBoundingBox orientedBoundingBox = cullableComponent.getOrientedBoundingBox();
+            if (orientedBoundingBox == null) return;
+            tmpObb.set(orientedBoundingBox.getBounds(), new Matrix4());
+            Model model = buildModel(tmpObb, getColor(component));
+            modelInstancesCache.put(component, new ModelInstance(model));
+        }
+
+        ModelInstance modelInstance = modelInstancesCache.get(component);
+        modelInstance.transform.set(cullableComponent.getOrientedBoundingBox().getTransform());
+        instances.add(modelInstance);
+
+        if (drawFacingArrow && go == selectedGameObject) {
+
+            Vector3 worldPos = Pools.vector3Pool.obtain();
+            Vector3 arrowScale = Pools.vector3Pool.obtain();
+            Vector3 localPos = Pools.vector3Pool.obtain();
+            Quaternion localRot = Pools.quaternionPool.obtain();
+
+            selectedGameObject.getPosition(worldPos);
+            selectedGameObject.getLocalPosition(localPos);
+            selectedGameObject.getLocalRotation(localRot);
+
+            // Scale the arrow based on distance from camera and size of bounding box
+            float scaleFactor = Math.max(camera.position.dst(worldPos) * 0.1f, cullableComponent.getRadius());
+            arrowScale.set(scaleFactor, scaleFactor, scaleFactor);
+
+            // Set the transform of the arrow in local space first, with a calculated scale
+            arrowInstance.transform.set(localPos, localRot, arrowScale);
+            // apply world transform
+            arrowInstance.transform.mulLeft(go.getParent().getTransform());
+
+            Pools.vector3Pool.free(worldPos);
+            Pools.vector3Pool.free(arrowScale);
+            Pools.vector3Pool.free(localPos);
+            Pools.quaternionPool.free(localRot);
+            instances.add(arrowInstance);
+        }
+    }
+
+    private void renderCollisionShape(AbstractPhysicsBodyComponent component) {
+        GameObject go = component.getGameObject();
+        CollisionShape currentCollisionShape = currentCollisionShapes.get(component);
+        CollisionShape componentCollisionShape = component.getCollisionShape();
+
+        if (currentCollisionShape != componentCollisionShape) {
+            Model model = buildModel(componentCollisionShape, getColor(component));
+            modelInstancesCache.put(component, new ModelInstance(model));
+            currentCollisionShapes.put(component, componentCollisionShape);
+        }
+
+        ModelInstance modelInstance = modelInstancesCache.get(component);
+        modelInstance.transform.set(go.getTransform());
+        instances.add(modelInstance);
+    }
+
     /**
      * Builds a model for the given oriented bounding box.
      *
@@ -231,6 +267,89 @@ public class DebugRenderer implements Renderer, Disposable {
                 orientedBoundingBox.getCorner011(new Vector3()), orientedBoundingBox.getCorner101(new Vector3()),
                 orientedBoundingBox.getCorner111(new Vector3()));
         return mb.end();
+    }
+
+    private Model buildModel(CollisionShape collisionShape, Color color) {
+        Material material = new Material(ColorAttribute.createDiffuse(color));
+        com.badlogic.gdx.graphics.g3d.utils.ModelBuilder mb = new com.badlogic.gdx.graphics.g3d.utils.ModelBuilder();
+        mb.begin();
+        MeshPartBuilder meshPartBuilder = mb.part("collision_shape", GL20.GL_LINES, VertexAttributes.Usage.Position, material);
+
+        if (collisionShape instanceof BoxCollisionShape) {
+            BoxCollisionShape boxCollisionShape = (BoxCollisionShape) collisionShape;
+            BoxShapeBuilder.build(meshPartBuilder, boxCollisionShape.centerX, boxCollisionShape.centerY, boxCollisionShape.centerZ,
+                    boxCollisionShape.width, boxCollisionShape.height, boxCollisionShape.depth);
+        }
+        if (collisionShape instanceof SphereCollisionShape) {
+            SphereCollisionShape sphereCollisionShape = (SphereCollisionShape) collisionShape;
+
+            translateMeshPartBuilder(meshPartBuilder, sphereCollisionShape.centerX, sphereCollisionShape.centerY, sphereCollisionShape.centerZ);
+            float diameter = sphereCollisionShape.radius * 2f;
+
+            SphereShapeBuilder.build(meshPartBuilder, diameter, diameter, diameter,
+                    16, 16);
+        }
+        if (collisionShape instanceof CapsuleCollisionShape) {
+            CapsuleCollisionShape capsuleCollisionShape = (CapsuleCollisionShape) collisionShape;
+            setCapsuleMeshPartBuilderTransform(meshPartBuilder, capsuleCollisionShape);
+            // LibGDX expects total capsule height (including caps). Our shape stores cylinder length (ODE-style).
+            float capsuleHeight = capsuleCollisionShape.length + 2f * capsuleCollisionShape.radius;
+            CapsuleShapeBuilder.build(meshPartBuilder, capsuleCollisionShape.radius, capsuleHeight, 16);
+        }
+
+        if (collisionShape instanceof CylinderCollisionShape) {
+            CylinderCollisionShape cylinderCollisionShape = (CylinderCollisionShape) collisionShape;
+            setCylinderMeshPartBuilderTransform(meshPartBuilder, cylinderCollisionShape);
+            float diameter = cylinderCollisionShape.radius * 2f;
+            float height = cylinderCollisionShape.length;
+            CylinderShapeBuilder.build(meshPartBuilder, diameter, height, diameter, 16);
+        }
+
+        return mb.end();
+    }
+
+    private void translateMeshPartBuilder(MeshPartBuilder meshPartBuilder, float x, float y, float z) {
+        Matrix4 localTrans = Pools.matrix4Pool.obtain();
+        localTrans.idt();
+        localTrans.translate(x, y, z);
+        meshPartBuilder.setVertexTransform(localTrans);
+        Pools.matrix4Pool.free(localTrans);
+    }
+
+    private void setCapsuleMeshPartBuilderTransform(MeshPartBuilder meshPartBuilder, CapsuleCollisionShape capsule) {
+        Axis axis = capsule.axis != null ? capsule.axis : Axis.Y;
+
+        Matrix4 localTrans = Pools.matrix4Pool.obtain();
+        localTrans.idt();
+        localTrans.translate(capsule.centerX, capsule.centerY, capsule.centerZ);
+
+        // CapsuleShapeBuilder is Y-axis by default.
+        if (axis == Axis.X) {
+            localTrans.rotate(Vector3.Z, -90f);
+        } else if (axis == Axis.Z) {
+            localTrans.rotate(Vector3.X, 90f);
+        }
+
+        meshPartBuilder.setVertexTransform(localTrans);
+        Pools.matrix4Pool.free(localTrans);
+    }
+
+    private void setCylinderMeshPartBuilderTransform(MeshPartBuilder meshPartBuilder, CylinderCollisionShape cylinder) {
+        Axis axis = cylinder.axis != null ? cylinder.axis : Axis.Y;
+
+        Matrix4 localTrans = Pools.matrix4Pool.obtain();
+        localTrans.idt();
+        localTrans.translate(cylinder.centerX, cylinder.centerY, cylinder.centerZ);
+
+        // CylinderShapeBuilder is Y-axis by default.
+        if (axis == Axis.X) {
+            localTrans.rotate(Vector3.Z, -90f);
+        } else if (axis == Axis.Z) {
+            localTrans.rotate(Vector3.X, 90f);
+        }
+
+        meshPartBuilder.setVertexTransform(localTrans);
+        Pools.matrix4Pool.free(localTrans);
     }
 
     public void setAppearOnTop(boolean appearOnTop) {

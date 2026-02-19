@@ -24,6 +24,7 @@ import com.mbrlabs.mundus.editor.events.LogEvent
 import com.mbrlabs.mundus.editor.events.LogType
 import com.mbrlabs.mundus.editor.scene3d.components.PickableLightComponent
 import com.mbrlabs.mundus.editor.ui.UI
+import com.mbrlabs.mundus.editor.utils.PhysicsBodyUtils
 import com.mbrlabs.mundus.pluginapi.ComponentExtension
 
 class AddComponentDialog : BaseDialog("Add Component") {
@@ -57,6 +58,9 @@ class AddComponentDialog : BaseDialog("Add Component") {
         })
         addableTypes.add(object : DropdownComponent("Custom properties"){
             override fun createComponent(gameObject: GameObject): Component? = getNewCustomPropertiesComponent(gameObject)
+        })
+        addableTypes.add(object : DropdownComponent("Physics Body"){
+            override fun createComponent(gameObject: GameObject): Component? = getNewPhysicsBodyComponent(gameObject)
         })
         pluginManager.getExtensions(ComponentExtension::class.java).forEach {
             try {
@@ -152,6 +156,21 @@ class AddComponentDialog : BaseDialog("Add Component") {
 
     private fun getNewCustomPropertiesComponent(go: GameObject): Component {
         return CustomPropertiesComponent(go)
+    }
+
+    private fun getNewPhysicsBodyComponent(go: GameObject): Component {
+        val physicsSystem = projectManager.current().currScene.physicsSystem
+        val collisionShape = PhysicsBodyUtils.getModelBounds(go)?.let {
+            PhysicsBodyUtils.fitBoxCollisionShape(it)
+        } ?: PhysicsBodyUtils.FALLBACK_COLLISION_SHAPE
+
+        return physicsSystem.createPhysicsBodyComponent(
+            PhysicsBodyUtils.DEFAULT_MOTION_TYPE,
+            collisionShape,
+            PhysicsBodyUtils.DEFAULT_MASS,
+            false,
+            go,
+        )
     }
 
 }

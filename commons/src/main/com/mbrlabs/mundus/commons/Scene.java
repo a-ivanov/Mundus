@@ -31,6 +31,7 @@ import com.badlogic.gdx.utils.Disposable;
 import com.mbrlabs.mundus.commons.assets.SkyboxAsset;
 import com.mbrlabs.mundus.commons.env.CameraSettings;
 import com.mbrlabs.mundus.commons.env.MundusEnvironment;
+import com.mbrlabs.mundus.commons.physics.PhysicsSystem;
 import com.mbrlabs.mundus.commons.rendering.DefaultSceneRenderer;
 import com.mbrlabs.mundus.commons.rendering.SceneRenderer;
 import com.mbrlabs.mundus.commons.scene3d.ModelCacheManager;
@@ -68,6 +69,8 @@ public class Scene implements Disposable {
     public ModelBatch batch;
     public ModelBatch depthBatch;
     public ModelCacheManager modelCacheManager;
+
+    public PhysicsSystem physicsSystem;
 
     public Scene() {
         environment = new MundusEnvironment();
@@ -122,6 +125,15 @@ public class Scene implements Disposable {
         } else {
             environment.set(PBRCubemapAttribute.createDiffuseEnv(diffuseCubemap));
         }
+    }
+
+    public void update() {
+        update(Gdx.graphics.getDeltaTime());
+    }
+
+    public void update(float delta) {
+        sceneGraph.update(delta);
+        physicsSystem.update(delta);
     }
 
     /**

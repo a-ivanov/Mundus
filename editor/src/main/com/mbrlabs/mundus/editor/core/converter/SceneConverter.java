@@ -34,6 +34,7 @@ import com.mbrlabs.mundus.commons.shadows.MundusDirectionalShadowLight;
 import com.mbrlabs.mundus.commons.utils.LightUtils;
 import com.mbrlabs.mundus.commons.water.WaterResolution;
 import com.mbrlabs.mundus.editor.core.EditorScene;
+import com.mbrlabs.mundus.editor.core.physics.AuthoringPhysicsSystem;
 
 import java.util.Map;
 
@@ -131,7 +132,7 @@ public class SceneConverter {
         // scene graph
         scene.sceneGraph = new SceneGraph(scene);
         for (GameObjectDTO descriptor : dto.getGameObjects()) {
-            scene.sceneGraph.addGameObject(GameObjectConverter.convert(descriptor, scene.sceneGraph, assets, customComponentConverters));
+            scene.sceneGraph.addGameObject(GameObjectConverter.convert(descriptor, scene.sceneGraph, assets, AuthoringPhysicsSystem.INSTANCE, customComponentConverters));
         }
 
         // camera
@@ -145,6 +146,8 @@ public class SceneConverter {
             ((PerspectiveCamera) scene.cam).fieldOfView = dto.getCamFieldOfView() > 0 ? dto.getCamFieldOfView() : CameraSettings.DEFAULT_FOV;
         }
         scene.cam.update();
+
+        scene.physicsSystem = AuthoringPhysicsSystem.INSTANCE;
 
         return scene;
     }

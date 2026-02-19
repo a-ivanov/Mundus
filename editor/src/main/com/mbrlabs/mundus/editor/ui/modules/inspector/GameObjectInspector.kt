@@ -24,6 +24,7 @@ import com.kotcrab.vis.ui.widget.VisTable
 import com.kotcrab.vis.ui.widget.VisTextButton
 import com.mbrlabs.mundus.commons.scene3d.GameObject
 import com.mbrlabs.mundus.commons.scene3d.components.AbstractComponent
+import com.mbrlabs.mundus.commons.scene3d.components.AbstractPhysicsBodyComponent
 import com.mbrlabs.mundus.commons.scene3d.components.Component
 import com.mbrlabs.mundus.commons.scene3d.components.CustomPropertiesComponent
 import com.mbrlabs.mundus.commons.scene3d.components.LightComponent
@@ -43,6 +44,7 @@ import com.mbrlabs.mundus.editor.ui.modules.inspector.components.CustomPropertie
 import com.mbrlabs.mundus.editor.ui.modules.inspector.components.IdentifierWidget
 import com.mbrlabs.mundus.editor.ui.modules.inspector.components.LightComponentWidget
 import com.mbrlabs.mundus.editor.ui.modules.inspector.components.ModelComponentWidget
+import com.mbrlabs.mundus.editor.ui.modules.inspector.components.PhysicsBodyComponentWidget
 import com.mbrlabs.mundus.editor.ui.modules.inspector.components.TransformWidget
 import com.mbrlabs.mundus.editor.ui.modules.inspector.components.terrain.TerrainComponentWidget
 import com.mbrlabs.mundus.editor.ui.modules.inspector.components.WaterComponentWidget
@@ -123,6 +125,8 @@ class GameObjectInspector : VisTable() {
                     componentWidgets.add(WaterComponentWidget(component as WaterComponent))
                 } else if (component.type == Component.Type.LIGHT) {
                     componentWidgets.add(LightComponentWidget(component as LightComponent))
+                } else if (component.type == Component.Type.PHYSICS_BODY) {
+                    componentWidgets.add(PhysicsBodyComponentWidget(component as AbstractPhysicsBodyComponent))
                 } else if (component.type == Component.Type.CUSTOM_PROPERTIES) {
                     componentWidgets.add(CustomPropertiesWidget(component as CustomPropertiesComponent))
                 } else if (component.type == Component.Type.TERRAIN_MANAGER) {
@@ -147,6 +151,9 @@ class GameObjectInspector : VisTable() {
 
         if (component is LightComponent) {
             componentWidgets.add(LightComponentWidget(component))
+            componentTable.add(componentWidgets.last()).grow().row()
+        } else if (component is AbstractPhysicsBodyComponent) {
+            componentWidgets.add(PhysicsBodyComponentWidget(component))
             componentTable.add(componentWidgets.last()).grow().row()
         } else if (component is CustomPropertiesComponent) {
             componentWidgets.add(CustomPropertiesWidget(component))
