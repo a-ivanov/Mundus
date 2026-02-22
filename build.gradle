@@ -37,6 +37,7 @@ allprojects {
         args4jVersion = '2.33'
         pf4jVersion = '3.13.0'
         lwjgl3Version = "3.3.3" // For MeshOptimizer
+        gdxOde4jVersion = 'eaa6a03aca'
 
         ktxVersion = '1.13.1-rc1'
     }
@@ -141,6 +142,30 @@ project(":plugin-api") {
 
         // Plugin framework
         api "org.pf4j:pf4j:$pf4jVersion"
+    }
+}
+
+project(":physics-ode4j") {
+    apply plugin: "java"
+    apply plugin: "java-library"
+
+    dependencies {
+        api project(":commons")
+
+        implementation "com.github.Dgzt:gdx-ode4j:$gdxOde4jVersion"
+    }
+}
+
+project(":plugin-physics-ode4j") {
+    apply plugin: "java"
+    apply plugin: "java-library"
+
+    dependencies {
+        compileOnly project(":plugin-api")
+
+        api project(":physics-ode4j")
+
+        annotationProcessor "org.pf4j:pf4j:$pf4jVersion"
     }
 }
 
